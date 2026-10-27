@@ -1,0 +1,163 @@
+{
+  "source_root": "D:\\codex\\codex-ui",
+  "source_commit": "99730d4f4b46c8e633149eda128b2040f40f6256",
+  "source_working_tree_dirty": true,
+  "extracted_at": "2026-10-27T23:58:31.1566836+08:00",
+  "files": [
+    {
+      "path": "reference/codex-ui/变更记录.md",
+      "sha256": "bd8a3a3ff8862aac74fc7a1a25d8feaccd21298de5b223d04f45faf2e52f0521",
+      "size": 874898
+    },
+    {
+      "path": "reference/codex-ui/README.md",
+      "sha256": "3b99e2b767d8d4f43e915428b91b54d48908b0d63f839a2a76f7b7791d1cf179",
+      "size": 119126
+    },
+    {
+      "path": "reference/codex-ui/src-tauri/Cargo.toml",
+      "sha256": "62e61ac99b4f0e43b423fb77403f0b09f6b73bcf2c1ab6df543ccee36553b05e",
+      "size": 2123
+    },
+    {
+      "path": "reference/codex-ui/src-tauri/resources/opencode_tools.json",
+      "sha256": "b1b7e3de6a806e4e7cbe6e534a1137bf8153354cabd61b579b08312263898f1c",
+      "size": 3663
+    },
+    {
+      "path": "reference/codex-ui/src-tauri/src/codex/app_server.rs",
+      "sha256": "0401273904e90206bd2114e6ab302c3303baadf4bb342bf50167a4f7e365c527",
+      "size": 86363
+    },
+    {
+      "path": "reference/codex-ui/src-tauri/src/codex/commands.rs",
+      "sha256": "f8ee4c711cf8c67d420edd9612a80e5ff64d7fed39b39bb63d2272c13d44fde3",
+      "size": 43547
+    },
+    {
+      "path": "reference/codex-ui/src-tauri/src/codex/compat_proxy/integration_tests.rs",
+      "sha256": "8d01700c30e48d703c357ec23d3bf6cefddeb421535f1106f2be6e3e46fd2718",
+      "size": 163383
+    },
+    {
+      "path": "reference/codex-ui/src-tauri/src/codex/compat_proxy/mod.rs",
+      "sha256": "8269b2e38167b413c132db6cd56a46429ec9822aadfa63fa2fe2cd5006e0f70e",
+      "size": 244957
+    },
+    {
+      "path": "reference/codex-ui/src-tauri/src/codex/compat_proxy/test_support.rs",
+      "sha256": "9d7de1a2e7cb452551b43d5f75db3f305c7fe556ac3238b47b2f40ebda3cf734",
+      "size": 2288
+    },
+    {
+      "path": "reference/codex-ui/src-tauri/src/codex/compat_proxy/tests.rs",
+      "sha256": "07abf11d02b0edd136cd63a00ae1fd6141582f83a658de4d1522a2cc8bb594ae",
+      "size": 148990
+    },
+    {
+      "path": "reference/codex-ui/src-tauri/src/codex/compat_trace.rs",
+      "sha256": "b8d7be692780201d9fdaedf29c37784f6e7f2a94cf3aeaef87cf6b9d36a90770",
+      "size": 25186
+    },
+    {
+      "path": "reference/codex-ui/src-tauri/src/codex/mod.rs",
+      "sha256": "77c3b2bf458ac5606341e02b4e447d965742a58b12de4506d8371ec27c892f16",
+      "size": 629
+    },
+    {
+      "path": "reference/codex-ui/src-tauri/src/codex/opencode_profile.rs",
+      "sha256": "909e63d8e76ee4f05a81685e3221645a17983236ed3ca5ebe17f807ae90ad92a",
+      "size": 4805
+    },
+    {
+      "path": "reference/codex-ui/src-tauri/src/codex/path_util.rs",
+      "sha256": "d8bf209ccad05799a6f228bfb071b88b96739a2df4c60757c348304903826fdb",
+      "size": 6934
+    },
+    {
+      "path": "reference/codex-ui/src-tauri/src/codex/session_log.rs",
+      "sha256": "d3fdbed45ac7554f16e6a58027f6e16cfecbe49baae01b607f52530cfe2fef28",
+      "size": 14192
+    },
+    {
+      "path": "reference/codex-ui/src-tauri/src/codex/settings.rs",
+      "sha256": "07d704d9a07a2932237d1b7e54e228fa9dc808da100571b3d729a47bff703ea7",
+      "size": 22889
+    },
+    {
+      "path": "reference/codex-ui/src-tauri/src/lib.rs",
+      "sha256": "40e1e942c4398ef05ecdce8deeb922d40c0d5b168aa79e1210534b540ef9c30a",
+      "size": 27682
+    },
+    {
+      "path": "reference/codex-ui/src/components/settings/CompatProxySection.vue",
+      "sha256": "18547e7648263268a80baea5ebae61da14141aa5ea06625f84274b813ccfba89",
+      "size": 11278
+    },
+    {
+      "path": "reference/codex-ui/src/composables/useCodex/compatProxy.ts",
+      "sha256": "bc12ff5eaa47b3eb8ecd197956f2ea2be6bc94e5c3f142f59f7dc46a67f858d5",
+      "size": 2746
+    },
+    {
+      "path": "reference/codex-ui/src/composables/useCodex/types.ts",
+      "sha256": "5fde8aadb367b81e9709b500a4a122eb95ae0635bb5cc6bd78a422452e0d3867",
+      "size": 9292
+    },
+    {
+      "path": "reference/codex-ui/src/lib/types.ts",
+      "sha256": "463e0ab5d99ddd12dfa4ea1cce8a473868fb0dfcff74e3ac4857c221515b1077",
+      "size": 20193
+    },
+    {
+      "path": "resources/opencode_tools.json",
+      "sha256": "b1b7e3de6a806e4e7cbe6e534a1137bf8153354cabd61b579b08312263898f1c",
+      "size": 3663
+    },
+    {
+      "path": "scripts/prepare-boringssl-tools.ps1",
+      "sha256": "b62c3f32a43aa4cfed9bf529d2ccf413ceb3fc4272233c1766bf6629af0a002b",
+      "size": 12174
+    },
+    {
+      "path": "src/codex/compat_proxy/integration_tests.rs",
+      "sha256": "8d01700c30e48d703c357ec23d3bf6cefddeb421535f1106f2be6e3e46fd2718",
+      "size": 163383
+    },
+    {
+      "path": "src/codex/compat_proxy/mod.rs",
+      "sha256": "8269b2e38167b413c132db6cd56a46429ec9822aadfa63fa2fe2cd5006e0f70e",
+      "size": 244957
+    },
+    {
+      "path": "src/codex/compat_proxy/test_support.rs",
+      "sha256": "9d7de1a2e7cb452551b43d5f75db3f305c7fe556ac3238b47b2f40ebda3cf734",
+      "size": 2288
+    },
+    {
+      "path": "src/codex/compat_proxy/tests.rs",
+      "sha256": "07abf11d02b0edd136cd63a00ae1fd6141582f83a658de4d1522a2cc8bb594ae",
+      "size": 148990
+    },
+    {
+      "path": "src/codex/compat_trace.rs",
+      "sha256": "b8d7be692780201d9fdaedf29c37784f6e7f2a94cf3aeaef87cf6b9d36a90770",
+      "size": 25186
+    },
+    {
+      "path": "src/codex/opencode_profile.rs",
+      "sha256": "909e63d8e76ee4f05a81685e3221645a17983236ed3ca5ebe17f807ae90ad92a",
+      "size": 4805
+    },
+    {
+      "path": "src/codex/path_util.rs",
+      "sha256": "d8bf209ccad05799a6f228bfb071b88b96739a2df4c60757c348304903826fdb",
+      "size": 6934
+    },
+    {
+      "path": "src/codex/session_log.rs",
+      "sha256": "d3fdbed45ac7554f16e6a58027f6e16cfecbe49baae01b607f52530cfe2fef28",
+      "size": 14192
+    }
+  ]
+}

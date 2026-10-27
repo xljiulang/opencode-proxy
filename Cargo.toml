@@ -1,0 +1,43 @@
+[package]
+name = "opencode-proxy"
+version = "0.1.0"
+description = "独立的 OpenCode 兼容 Responses 代理"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.8", default-features = false, features = [
+  "http1",
+  "json",
+  "tokio",
+  "original-uri",
+] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+futures-util = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = [
+  "fs",
+  "io-util",
+  "macros",
+  "net",
+  "process",
+  "rt-multi-thread",
+  "sync",
+  "time",
+] }
+windows = { version = "0.62", features = [
+  "Win32_Foundation",
+  "Win32_Security_Cryptography",
+] }
+wreq = { version = "=0.15.3", default-features = false, features = [
+  "json",
+  "stream",
+  "native-roots",
+] }
+
+[dev-dependencies]
+reqwest = { version = "0.12", default-features = false, features = [
+  "json",
+  "stream",
+] }
+tempfile = "3"
