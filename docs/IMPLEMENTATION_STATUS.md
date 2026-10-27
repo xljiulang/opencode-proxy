@@ -15,13 +15,14 @@
 | Responses 原生协议自动判定与重试 | 是 | 是 | 是（库内） | 已有 |
 | 回合收尾约束、续跑和标签剥离 | 是 | 是 | 是（库内） | 已有 |
 | OpenCode 2.2.0 UA / session 身份 | 是 | 是 | 是（库内） | 已有 |
-| OpenCode 项目 ID 生成与线程登记 | 是 | 是 | 部分 | 需独立化 |
+| OpenCode project ID 显式配置 | 是 | 是 | 是 | 已有 |
 | wreq / BoringSSL TLS 与 HTTP1 指纹 | 是 | 是 | 是（库内） | 已有 |
-| OpenCode org ID 获取与校验 | 否 | - | 否 | TODO |
+| OpenCode org ID 显式配置 | 是 | 是 | 是 | 已有 |
+| OpenCode org ID 自动导入与校验 | 否 | - | 否 | TODO |
 | API Key 哈希与 org ID 绑定 | 否 | - | 否 | TODO |
-| 独立配置文件 | 否 | - | 否 | TODO |
-| 服务启动、健康检查、优雅退出 | 否 | - | 否 | TODO |
-| 模型列表接口 | 否 | - | 否 | TODO |
+| TOML / CLI / 环境变量配置 | 是 | 是 | 是 | 已有 |
+| 服务启动、健康检查、优雅退出 | 是 | 是 | 是 | 已有 |
+| 模型列表路径映射 | 是 | 是 | 是 | 已有 |
 | 日志脱敏与错误分类统一层 | 部分 | 是 | 部分 | TODO |
 | 发布流程和安装包 | 否 | - | 否 | TODO |
 
@@ -36,20 +37,16 @@
 - `src/compat_trace.rs`：单次上游尝试的内容诊断文件。
 - `src/session_log.rs`：结构化运行日志。
 - `src/path_util.rs`：Windows 路径清洗辅助。
+- `src/runtime.rs`：CLI、配置合并、运行服务和 Ctrl+C 优雅退出。
 - `resources/opencode_tools.json`：OpenCode 客户端 6 个内置工具的请求体 schema。
 - `reference/codex-ui/`：未二次改写的 codex-ui 原始接线快照。
 
 ## 尚未实现的运行时
 
-1. 读取 `OPENCODE_ORG_ID` 或从本机 OpenCode provider API 自动导入。
+1. 从本机 OpenCode provider API 自动导入并校验 org/project ID。
 2. 用 `SHA-256(API Key)` 建立进程内或持久化的密钥到 org ID 绑定。
-3. 定义配置格式。建议至少包含监听端口、上游端点、org ID 来源、日志目录、
-   TLS 指纹开关和诊断开关。
-4. 从 `src/main.rs` 构造 `ProxyState`、启动 axum 服务并提供 SIGINT/Windows 关闭处理。
-5. 实现 `/healthz`、`/v1/models` 和稳定错误对象。
-6. 为独立 crate 重新设计 app-server 线程工作区登记；当前 `reference/` 中的 Tauri
-   接线不能直接编译运行。
-7. 增加真实网络 smoke test、发布签名和版本策略。
+3. 完成统一错误对象与脱敏层。
+4. 增加真实网络 smoke test、CI、发布签名和版本策略。
 
 ## 验收条件
 
@@ -77,7 +74,8 @@
 
 ## 当前测试边界
 
-`cargo test --lib` 已通过 207 个测试，覆盖翻译、SSE、工具、reasoning_content、
-协议切换、nudge、身份头、门禁补丁和指纹配置；1 个真实 OpenCode 网络探针按设计忽略。
+`cargo test --lib` 已通过 216 个测试，覆盖配置优先级、服务生命周期、健康检查、
+模型映射、翻译、SSE、工具、reasoning_content、协议切换、nudge、身份头、门禁补丁和
+指纹配置；1 个真实 OpenCode 网络探针按设计忽略。
 `reference/codex-ui/` 只作为原始接线上下文，不参与当前 crate 编译；Tauri/app-server
 接线要在正式服务入口中重新设计。

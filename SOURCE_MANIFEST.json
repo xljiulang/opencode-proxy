@@ -121,18 +121,18 @@
     },
     {
       "path": "src/compat_proxy/integration_tests.rs",
-      "sha256": "20a6c853f8db2c2133c4d429a744c5bf090998f5156c5b967663a58c151d0eaf",
-      "size": 163361
+      "sha256": "bf0f112e2253ffeea1690de6a15ce18c653daa6122a70f64044c9d7f06e008fc",
+      "size": 170904
     },
     {
       "path": "src/compat_proxy/mod.rs",
-      "sha256": "3fae9bdf8d15f056fffa82176ab12244996ffc787e19a3ce3235b5fce23a8faa",
-      "size": 244847
+      "sha256": "da964b8d7e83515e2d0f77d39c6d1b18d298e69ecff591828e7670c4b8f5786d",
+      "size": 249083
     },
     {
       "path": "src/compat_proxy/test_support.rs",
-      "sha256": "9d7de1a2e7cb452551b43d5f75db3f305c7fe556ac3238b47b2f40ebda3cf734",
-      "size": 2288
+      "sha256": "b294c5b6783c2464f9309074b44aa2de237312314f3cc9dc67a3011a3d231725",
+      "size": 2446
     },
     {
       "path": "src/compat_proxy/tests.rs",

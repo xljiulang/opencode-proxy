@@ -16,14 +16,12 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use axum::body::Body;
 use axum::extract::{OriginalUri, State};
 use axum::http::{header, HeaderMap, HeaderValue, Method, StatusCode, Uri};
-use axum::response::Response;
-#[cfg(test)]
+use axum::response::{IntoResponse, Response};
 use axum::Json;
 use axum::Router;
 use futures_util::stream::{self, StreamExt};
 use futures_util::Stream;
 use serde_json::{json, Map, Value};
-use tokio::task::AbortHandle;
 
 use crate::compat_trace::{TraceCall, TraceSink};
 use crate::opencode_profile::OPENCODE_USER_AGENT;
@@ -508,11 +506,13 @@ fn nudge_continuation_body(original: &Value, assistant_text: &str, nudge_text: &
 }
 
 /// 运行中的代理句柄；`stop()` 终止监听任务。
+#[derive(Debug)]
 pub struct CompatProxyHandle {
     pub port: u16,
     /// 生效中的启动配置（已归一化，用于判断是否需要重启）。
     config: CompatProxyConfig,
-    abort: AbortHandle,
+    shutdown: Option<tokio::sync::oneshot::Sender<()>>,
+    task: tokio::task::JoinHandle<()>,
 }
 
 /// 代理启动配置：端口、上游地址与两个行为开关。任一项变化都要重启代理，
@@ -522,6 +522,12 @@ pub(crate) struct CompatProxyConfig {
     pub port: u16,
     /// 上游 base_url（已归一化：去空白与末尾 `/`）。
     pub base_url: String,
+    /// 模型列表上游地址；Codex 请求本地 `{base_url}/models` 时转发到这里。
+    pub models_url: String,
+    /// 配置的 OpenCode workspace ID；仅在身份启用时注入。
+    pub org_id: Option<String>,
+    /// 配置的 OpenCode project ID；仅在身份启用时注入。
+    pub project_id: Option<String>,
     /// 「OpenCode 客户端身份」开关：勾选即**无条件**按 opencode 客户端发请求——
     /// 识别头/UA 与免费层请求体门禁字段（`max_tokens` + 内置工具声明）一并生效，
     /// 不再判断上游 host；取消勾选则两者一起停用。
@@ -538,12 +544,27 @@ impl CompatProxyConfig {
         opencode_identity: bool,
         nudge_enabled: bool,
     ) -> Self {
+        let base_url = normalize_base_url(base_url);
         Self {
             port,
-            base_url: normalize_base_url(base_url),
+            models_url: format!("{base_url}/models"),
+            base_url,
+            org_id: None,
+            project_id: None,
             opencode_identity,
             nudge_enabled,
         }
+    }
+
+    pub(crate) fn with_models_url(mut self, models_url: &str) -> Self {
+        self.models_url = models_url.trim().trim_end_matches('/').to_string();
+        self
+    }
+
+    pub(crate) fn with_opencode_identity(mut self, org_id: &str, project_id: &str) -> Self {
+        self.org_id = Some(org_id.trim().to_string()).filter(|value| !value.is_empty());
+        self.project_id = Some(project_id.trim().to_string()).filter(|value| !value.is_empty());
+        self
     }
 
     /// 是否与运行中的实例等价（用于「要不要重启代理」的判定）：端口、归一化后的上游地址
@@ -551,6 +572,9 @@ impl CompatProxyConfig {
     fn matches(&self, other: &Self) -> bool {
         self.port == other.port
             && self.base_url == other.base_url
+            && self.models_url == other.models_url
+            && self.org_id == other.org_id
+            && self.project_id == other.project_id
             && self.opencode_identity == other.opencode_identity
             && self.nudge_enabled == other.nudge_enabled
     }
@@ -560,8 +584,15 @@ impl CompatProxyConfig {
 pub(crate) type ZenLog = Option<Arc<SessionLog>>;
 
 impl CompatProxyHandle {
-    pub fn stop(&self) {
-        self.abort.abort();
+    pub fn stop(&mut self) {
+        if let Some(shutdown) = self.shutdown.take() {
+            let _ = shutdown.send(());
+        }
+    }
+
+    pub async fn shutdown(mut self) {
+        self.stop();
+        let _ = self.task.await;
     }
 }
 
@@ -649,25 +680,38 @@ pub(crate) async fn start(
             }
         }
     };
-    let app = Router::new().fallback(handle_any).with_state(ProxyState {
-        session: opencode_id("ses", true),
-        session_map: Arc::new(SessionMap::default()),
-        base_url: base_url.clone(),
-        log,
-        trace,
-        requires_reasoning_rc: Arc::new(AtomicBool::new(false)),
-        opencode_identity: config.opencode_identity,
-        nudge_enabled: config.nudge_enabled,
-        protocols: protocol_cache(),
-        modes,
-    });
+    let app = Router::new()
+        .route("/healthz", axum::routing::get(handle_health))
+        .fallback(handle_any)
+        .with_state(ProxyState {
+            session: opencode_id("ses", true),
+            session_map: Arc::new(SessionMap::default()),
+            base_url: base_url.clone(),
+            models_url: config.models_url.clone(),
+            org_id: config.org_id.clone(),
+            project_id: config.project_id.clone(),
+            log,
+            trace,
+            requires_reasoning_rc: Arc::new(AtomicBool::new(false)),
+            opencode_identity: config.opencode_identity,
+            nudge_enabled: config.nudge_enabled,
+            protocols: protocol_cache(),
+            modes,
+            started_at: Instant::now(),
+        });
+    let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel();
     let task = tokio::spawn(async move {
-        let _ = axum::serve(listener, app).await;
+        let _ = axum::serve(listener, app)
+            .with_graceful_shutdown(async {
+                let _ = shutdown_rx.await;
+            })
+            .await;
     });
     Ok(CompatProxyHandle {
         port,
         config,
-        abort: task.abort_handle(),
+        shutdown: Some(shutdown_tx),
+        task,
     })
 }
 
@@ -703,7 +747,7 @@ pub(crate) async fn apply(
     let unchanged = handle.as_ref().is_some_and(|h| h.config.matches(&config));
     let need_start = enabled && !unchanged;
     if !enabled || !unchanged {
-        if let Some(h) = handle.take() {
+        if let Some(mut h) = handle.take() {
             h.stop();
         }
     }
@@ -748,6 +792,9 @@ struct ProxyState {
     /// 「codex 会话 id ↔ 上游 `ses_*`」映射表，见 [`SessionMap`]。
     session_map: Arc<SessionMap>,
     base_url: String,
+    models_url: String,
+    org_id: Option<String>,
+    project_id: Option<String>,
     log: ZenLog,
     /// 内容诊断日志（常开）：每次上游尝试的请求体/响应原文/收尾事件。
     trace: TraceSink,
@@ -768,6 +815,21 @@ struct ProxyState {
     protocols: ProtocolCache,
     /// 协作模式登记表（key = codex 线程 id）：由 app-server 侧登记，代理解析模式时优先查它。
     modes: Arc<ThreadModeRegistry>,
+    /// 代理启动时间，供健康检查计算运行时长。
+    started_at: Instant,
+}
+
+async fn handle_health(State(state): State<ProxyState>) -> Response {
+    Json(json!({
+        "status": "ok",
+        "service": env!("CARGO_PKG_NAME"),
+        "version": env!("CARGO_PKG_VERSION"),
+        "uptime_seconds": state.started_at.elapsed().as_secs(),
+        "identity_configured": state.opencode_identity
+            && state.org_id.is_some()
+            && state.project_id.is_some(),
+    }))
+    .into_response()
 }
 
 /// 上游支持的请求协议：`chat` 走 Responses→Chat 翻译，`responses` 按原协议直通。
@@ -1132,6 +1194,10 @@ async fn handle_any(
     headers: HeaderMap,
     body: Body,
 ) -> Response {
+    let expected_models = models_path(&state.base_url);
+    if method == Method::GET && uri.path() == expected_models {
+        return handle_models(&state, &uri, &headers).await;
+    }
     let expected = responses_path(&state.base_url);
     if method == Method::POST && uri.path() == expected {
         return handle_responses_auto(&state, &headers, &uri, body).await;
@@ -1150,6 +1216,42 @@ async fn handle_any(
         );
     }
     forward_passthrough(&state, method, &uri, &headers, body).await
+}
+
+/// Codex 的模型列表请求路径：provider base_url 路径后追加 `/models`。
+fn models_path(base_url: &str) -> String {
+    format!(
+        "{}/models",
+        responses_path(base_url)
+            .strip_suffix("/responses")
+            .unwrap_or_default()
+    )
+}
+
+async fn handle_models(state: &ProxyState, uri: &Uri, headers: &HeaderMap) -> Response {
+    let mut url = match wreq::Url::parse(&state.models_url) {
+        Ok(url) => url,
+        Err(e) => {
+            return error_json(StatusCode::BAD_GATEWAY, format!("模型列表地址无效：{e}"));
+        }
+    };
+    url.set_query(uri.query());
+    let rq = http_client(state.opencode_identity)
+        .get(url)
+        .headers(forwarded_request_headers(headers, state));
+    match rq.send().await {
+        Ok(resp) => {
+            let status = resp.status();
+            log_at(
+                &state.log,
+                if status.is_success() { "info" } else { "warn" },
+                "compat_proxy.models",
+                &[("status", status.as_u16().to_string())],
+            );
+            passthrough_response(resp).await
+        }
+        Err(e) => error_json(StatusCode::BAD_GATEWAY, format!("模型列表请求失败：{e}")),
+    }
 }
 
 /// 一条协议路径的处理结果：正常响应，或「上游说本模型不支持该协议」——后者供
@@ -2084,8 +2186,8 @@ fn opencode_session(state: &ProxyState, headers: &HeaderMap) -> String {
 }
 
 /// 按「OpenCode 客户端身份」开关落到请求头上的全部效果（翻译路径与透传路径共用）：
-/// - 开启：只附加免费层门禁实测必需的用户代理与 `x-opencode-session`；
-///   项目、组织、追踪头与会话别名均可省略，入站 UA 一律丢弃；
+/// - 开启：附加 OpenCode UA、`x-opencode-session`，以及配置好的
+///   client/org/project；入站同名头和 UA 一律丢弃；
 /// - 关闭：不附加任何识别头，并把入站自带的同名头剔除（避免仍然“自称 opencode”），
 ///   UA 改为透传入站值；入站没有 UA 时不带 UA（客户端不再设默认 UA）。
 ///
@@ -2111,6 +2213,15 @@ fn apply_opencode_identity(
     }
     if let Ok(value) = HeaderValue::from_str(ZEN_USER_AGENT) {
         out.insert(header::USER_AGENT, value);
+    }
+    if let (Some(org_id), Some(project_id)) = (&state.org_id, &state.project_id) {
+        if let Ok(value) = HeaderValue::from_str(org_id) {
+            out.insert("x-opencode-org-id", value);
+        }
+        if let Ok(value) = HeaderValue::from_str(project_id) {
+            out.insert("x-opencode-project", value);
+        }
+        out.insert("x-opencode-client", HeaderValue::from_static("desktop"));
     }
 }
 

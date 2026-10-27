@@ -11,3 +11,10 @@ pub mod compat_trace;
 pub mod opencode_profile;
 pub mod path_util;
 pub mod session_log;
+
+mod runtime;
+
+/// 从命令行和环境变量加载配置，启动本机代理并等待 Ctrl+C。
+pub async fn run() -> Result<(), String> {
+    runtime::run().await
+}

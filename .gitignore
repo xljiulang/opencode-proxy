@@ -3,3 +3,6 @@
 /.vscode
 *.log
 /tmp
+/opencode-proxy.toml
+/.opencode-proxy/
+/logs/

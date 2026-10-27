@@ -393,6 +393,9 @@ async fn passthrough_forwards_models_and_post_body() {
         session: "ses_fixed123".into(),
         opencode_identity: true,
         nudge_enabled: true,
+        models_url: format!("{}/models", base_url.trim_end_matches('/')),
+        org_id: None,
+        project_id: None,
         base_url,
         log: None,
         trace: TraceSink::disabled(),
@@ -400,6 +403,7 @@ async fn passthrough_forwards_models_and_post_body() {
         session_map: Arc::new(SessionMap::default()),
         protocols: protocol_cache(),
         modes: Arc::new(ThreadModeRegistry::default()),
+        started_at: Instant::now(),
     };
     let mut headers = HeaderMap::new();
     headers.insert(
@@ -460,6 +464,9 @@ async fn passthrough_prefers_client_session_header() {
         session: "ses_fixed123".into(),
         opencode_identity: true,
         nudge_enabled: true,
+        models_url: format!("{}/models", base_url.trim_end_matches('/')),
+        org_id: None,
+        project_id: None,
         base_url,
         log: None,
         trace: TraceSink::disabled(),
@@ -467,6 +474,7 @@ async fn passthrough_prefers_client_session_header() {
         session_map: Arc::new(SessionMap::default()),
         protocols: protocol_cache(),
         modes: Arc::new(ThreadModeRegistry::default()),
+        started_at: Instant::now(),
     };
     let mut headers = HeaderMap::new();
     headers.insert("session-id", HeaderValue::from_static("client-session-42"));
@@ -779,6 +787,9 @@ fn nudge_probe_state(upstream: &str, log: ZenLog) -> ProxyState {
     ProxyState {
         session: "ses_fixed123".into(),
         base_url: upstream.to_string(),
+        models_url: format!("{}/models", upstream.trim_end_matches('/')),
+        org_id: None,
+        project_id: None,
         log,
         trace: TraceSink::disabled(),
         requires_reasoning_rc: Arc::new(AtomicBool::new(false)),
@@ -787,6 +798,7 @@ fn nudge_probe_state(upstream: &str, log: ZenLog) -> ProxyState {
         session_map: Arc::new(SessionMap::default()),
         protocols: protocol_cache(),
         modes: Arc::new(ThreadModeRegistry::default()),
+        started_at: Instant::now(),
     }
 }
 
@@ -1893,6 +1905,9 @@ fn proxy_state_traced(base_url: String, log: ZenLog, trace: TraceSink) -> ProxyS
         session: "ses_fixed123".into(),
         opencode_identity: true,
         nudge_enabled: true,
+        models_url: format!("{}/models", base_url.trim_end_matches('/')),
+        org_id: None,
+        project_id: None,
         base_url,
         log,
         trace,
@@ -1900,6 +1915,7 @@ fn proxy_state_traced(base_url: String, log: ZenLog, trace: TraceSink) -> ProxyS
         session_map: Arc::new(SessionMap::default()),
         protocols: protocol_cache(),
         modes: Arc::new(ThreadModeRegistry::default()),
+        started_at: Instant::now(),
     }
 }
 
@@ -2056,6 +2072,135 @@ async fn started_proxy_translates_path_derived_from_upstream() {
     )
     .await;
     assert!(!status.running);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn health_endpoint_is_local_and_does_not_contact_upstream() {
+    let rec: Arc<AsyncMutex<Vec<String>>> = Arc::new(AsyncMutex::new(Vec::new()));
+    let upstream = spawn_mock_record_all(rec.clone()).await;
+    let port = free_loopback_port();
+    let mut handle = None;
+    let status = apply(
+        &mut handle,
+        true,
+        CompatProxyConfig::new(port, &upstream, false, true),
+        None,
+        TraceSink::disabled(),
+        Arc::new(ThreadModeRegistry::default()),
+    )
+    .await;
+    assert!(status.running, "{:?}", status.error);
+
+    let resp = reqwest::Client::new()
+        .get(format!("http://127.0.0.1:{port}/healthz"))
+        .send()
+        .await
+        .expect("健康检查应可访问");
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body: Value = resp.json().await.unwrap();
+    assert_eq!(body["status"], "ok");
+    assert_eq!(body["service"], "opencode-proxy");
+    assert_eq!(body["version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(body["identity_configured"], false);
+    assert!(rec.lock().await.is_empty(), "健康检查不得访问上游");
+
+    apply(
+        &mut handle,
+        false,
+        CompatProxyConfig::new(port, &upstream, false, true),
+        None,
+        TraceSink::disabled(),
+        Arc::new(ThreadModeRegistry::default()),
+    )
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn models_path_uses_configured_models_url_and_preserves_auth() {
+    let rec: Arc<AsyncMutex<Option<PassthroughReceived>>> = Arc::new(AsyncMutex::new(None));
+    let upstream_v1 = spawn_mock_passthrough(rec.clone()).await;
+    let origin = upstream_v1.trim_end_matches("/v1");
+    let proxy_base = format!("{origin}/openai/v1");
+    let models_url = format!("{origin}/v1/models");
+    let port = free_loopback_port();
+    let mut handle = None;
+    let status = apply(
+        &mut handle,
+        true,
+        CompatProxyConfig::new(port, &proxy_base, true, true).with_models_url(&models_url),
+        None,
+        TraceSink::disabled(),
+        Arc::new(ThreadModeRegistry::default()),
+    )
+    .await;
+    assert!(status.running, "{:?}", status.error);
+
+    let resp = reqwest::Client::new()
+        .get(format!("http://127.0.0.1:{port}/openai/v1/models?fresh=1"))
+        .header(header::AUTHORIZATION, "Bearer model-key")
+        .send()
+        .await
+        .expect("模型列表应可访问");
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body: Value = resp.json().await.unwrap();
+    assert_eq!(body["data"][0]["id"], "zen-model");
+
+    let got = rec.lock().await.clone().expect("模型上游应收到请求");
+    assert_eq!(got.method, "GET");
+    assert_eq!(got.path, "/v1/models");
+    assert_eq!(got.query.as_deref(), Some("fresh=1"));
+    assert_eq!(got.authorization.as_deref(), Some("Bearer model-key"));
+
+    apply(
+        &mut handle,
+        false,
+        CompatProxyConfig::new(port, &proxy_base, true, true).with_models_url(&models_url),
+        None,
+        TraceSink::disabled(),
+        Arc::new(ThreadModeRegistry::default()),
+    )
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn graceful_shutdown_releases_listen_port() {
+    let upstream = spawn_mock_record_all(Arc::new(AsyncMutex::new(Vec::new()))).await;
+    let port = free_loopback_port();
+    let mut handle = None;
+    let status = apply(
+        &mut handle,
+        true,
+        CompatProxyConfig::new(port, &upstream, false, true),
+        None,
+        TraceSink::disabled(),
+        Arc::new(ThreadModeRegistry::default()),
+    )
+    .await;
+    assert!(status.running, "{:?}", status.error);
+
+    handle.take().unwrap().shutdown().await;
+    tokio::net::TcpListener::bind(("127.0.0.1", port))
+        .await
+        .expect("优雅退出后端口应立即可复用");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn start_reports_occupied_port() {
+    let occupied = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = occupied.local_addr().unwrap().port();
+    let upstream = spawn_mock_record_all(Arc::new(AsyncMutex::new(Vec::new()))).await;
+
+    let err = start(
+        CompatProxyConfig::new(port, &upstream, false, true),
+        None,
+        TraceSink::disabled(),
+        Arc::new(ThreadModeRegistry::default()),
+    )
+    .await
+    .unwrap_err();
+
+    assert!(err.contains(&port.to_string()), "{err}");
+    assert!(err.contains("启动失败"), "{err}");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -2297,6 +2442,9 @@ async fn learns_and_retries_reasoning_content_requirement() {
         session: "ses_fixed123".into(),
         opencode_identity: true,
         nudge_enabled: true,
+        models_url: format!("{}/models", upstream.trim_end_matches('/')),
+        org_id: None,
+        project_id: None,
         base_url: upstream,
         log,
         trace: TraceSink::disabled(),
@@ -2304,6 +2452,7 @@ async fn learns_and_retries_reasoning_content_requirement() {
         session_map: Arc::new(SessionMap::default()),
         protocols: protocol_cache(),
         modes: Arc::new(ThreadModeRegistry::default()),
+        started_at: Instant::now(),
     };
     let probe = |state: ProxyState| async move {
         let uri: Uri = "/responses".parse().unwrap();
@@ -3337,6 +3486,64 @@ async fn identity_switch_on_keeps_headers_and_body_patch() {
     assert!(got.session_affinity.is_none());
     assert!(got.session_id.is_none());
     assert!(got.body.get("max_tokens").is_some(), "{}", got.body);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn configured_identity_headers_override_inbound_values() {
+    let rec: Arc<AsyncMutex<Option<Received>>> = Arc::new(AsyncMutex::new(None));
+    let base_url = spawn_mock_zen(rec.clone()).await;
+    let port = free_loopback_port();
+    let mut handle = None;
+    let config = CompatProxyConfig::new(port, &base_url, true, true)
+        .with_opencode_identity("wrk_configured", "project-configured");
+    let status = apply(
+        &mut handle,
+        true,
+        config,
+        None,
+        TraceSink::disabled(),
+        Arc::new(ThreadModeRegistry::default()),
+    )
+    .await;
+    assert!(status.running, "{:?}", status.error);
+
+    let resp = reqwest::Client::new()
+        .post(format!("http://127.0.0.1:{port}/responses"))
+        .header(header::AUTHORIZATION, "Bearer downstream-key")
+        .header(header::USER_AGENT, "forged/1.0")
+        .header("x-opencode-client", "forged")
+        .header("x-opencode-org-id", "wrk_forged")
+        .header("x-opencode-project", "project-forged")
+        .header("x-opencode-session", "ses_forged")
+        .header("session-id", "codex-thread-1")
+        .json(&json!({ "model": "m", "input": "hi", "stream": false }))
+        .send()
+        .await
+        .expect("代理应可访问");
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let got = rec.lock().await.clone().expect("mock 应收到上游请求");
+    assert_eq!(got.authorization.as_deref(), Some("Bearer downstream-key"));
+    assert_eq!(got.user_agent.as_deref(), Some(ZEN_USER_AGENT));
+    assert_eq!(got.opencode_client.as_deref(), Some("desktop"));
+    assert_eq!(got.opencode_org_id.as_deref(), Some("wrk_configured"));
+    assert_eq!(got.opencode_project.as_deref(), Some("project-configured"));
+    assert_ne!(
+        got.opencode_session.as_deref(),
+        Some("ses_forged"),
+        "入站伪造会话必须被替换"
+    );
+    assert_is_opencode_id(got.opencode_session.as_deref().unwrap(), "ses");
+
+    apply(
+        &mut handle,
+        false,
+        CompatProxyConfig::new(port, &base_url, true, true),
+        None,
+        TraceSink::disabled(),
+        Arc::new(ThreadModeRegistry::default()),
+    )
+    .await;
 }
 
 /// 真实网络探针：使用与兼容代理完全相同的 wreq/BoringSSL 传输发送一次

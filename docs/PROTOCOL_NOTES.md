@@ -144,23 +144,25 @@ HTTPS 调试代理会替换 ClientHello。验证时必须直连，或至少旁�
 模型列表尚未实现。验收时应独立请求 `/inference/v1/models`，不要复用 chat 路径作为
 探针；探测失败也不能把代理判定为完全不可用。
 
-建议 loopback 接口：
+本机代理接口：
 
 - `GET /healthz`：仅返回进程状态、版本和配置是否完整。
-- `GET /v1/models`：返回上游模型或缓存结果，标明来源与更新时间。
+- `GET {upstream 路径}/models`：转发到配置的 `models_url`，并保留 Authorization。
 
 ## 配置与测试矩阵
 
-建议配置字段：
+当前配置字段：
 
 ```text
 listen = "127.0.0.1:18080"
 upstream = "https://opencode.ai/inference/openai/v1"
-org_id_source = "env" | "opencode-provider-api" | "oauth"
-org_id = "<optional explicit value>"
-tls_profile = "opencode-2.2.0"
+models_url = "https://opencode.ai/inference/v1/models"
+opencode_identity = true
+org_id = "<explicit workspace ID>"
+project_id = "<explicit project ID>"
+nudge_enabled = true
 trace = false
-log_dir = "<user-selected path>"
+log_dir = "<optional user-selected path>"
 ```
 
 最小测试矩阵：

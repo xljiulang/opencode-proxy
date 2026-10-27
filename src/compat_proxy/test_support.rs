@@ -31,6 +31,9 @@ pub(crate) fn test_proxy_state(
         session: session.to_string(),
         session_map: Arc::new(SessionMap::default()),
         base_url: base_url.to_string(),
+        models_url: format!("{}/models", base_url.trim_end_matches('/')),
+        org_id: None,
+        project_id: None,
         log,
         trace,
         requires_reasoning_rc: Arc::new(AtomicBool::new(false)),
@@ -38,5 +41,6 @@ pub(crate) fn test_proxy_state(
         nudge_enabled: true,
         protocols: protocol_cache(),
         modes: Arc::new(ThreadModeRegistry::default()),
+        started_at: Instant::now(),
     }
 }

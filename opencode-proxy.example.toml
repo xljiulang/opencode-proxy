@@ -1,0 +1,13 @@
+# Copy this file to opencode-proxy.toml and fill in the workspace values.
+# The real opencode-proxy.toml is ignored by Git.
+listen = "127.0.0.1:18080"
+upstream = "https://opencode.ai/inference/openai/v1"
+models_url = "https://opencode.ai/inference/v1/models"
+
+opencode_identity = true
+org_id = "wrk_replace_with_your_workspace_id"
+project_id = "replace_with_your_project_id"
+
+nudge_enabled = true
+trace = false
+# log_dir = "C:\\path\\outside\\the\\repository"
