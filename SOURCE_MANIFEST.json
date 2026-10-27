@@ -120,44 +120,44 @@
       "size": 12174
     },
     {
-      "path": "src/codex/compat_proxy/integration_tests.rs",
-      "sha256": "8d01700c30e48d703c357ec23d3bf6cefddeb421535f1106f2be6e3e46fd2718",
-      "size": 163383
+      "path": "src/compat_proxy/integration_tests.rs",
+      "sha256": "20a6c853f8db2c2133c4d429a744c5bf090998f5156c5b967663a58c151d0eaf",
+      "size": 163361
     },
     {
-      "path": "src/codex/compat_proxy/mod.rs",
-      "sha256": "8269b2e38167b413c132db6cd56a46429ec9822aadfa63fa2fe2cd5006e0f70e",
-      "size": 244957
+      "path": "src/compat_proxy/mod.rs",
+      "sha256": "3fae9bdf8d15f056fffa82176ab12244996ffc787e19a3ce3235b5fce23a8faa",
+      "size": 244847
     },
     {
-      "path": "src/codex/compat_proxy/test_support.rs",
+      "path": "src/compat_proxy/test_support.rs",
       "sha256": "9d7de1a2e7cb452551b43d5f75db3f305c7fe556ac3238b47b2f40ebda3cf734",
       "size": 2288
     },
     {
-      "path": "src/codex/compat_proxy/tests.rs",
+      "path": "src/compat_proxy/tests.rs",
       "sha256": "07abf11d02b0edd136cd63a00ae1fd6141582f83a658de4d1522a2cc8bb594ae",
       "size": 148990
     },
     {
-      "path": "src/codex/compat_trace.rs",
+      "path": "src/compat_trace.rs",
       "sha256": "b8d7be692780201d9fdaedf29c37784f6e7f2a94cf3aeaef87cf6b9d36a90770",
       "size": 25186
     },
     {
-      "path": "src/codex/opencode_profile.rs",
+      "path": "src/opencode_profile.rs",
       "sha256": "909e63d8e76ee4f05a81685e3221645a17983236ed3ca5ebe17f807ae90ad92a",
       "size": 4805
     },
     {
-      "path": "src/codex/path_util.rs",
+      "path": "src/path_util.rs",
       "sha256": "d8bf209ccad05799a6f228bfb071b88b96739a2df4c60757c348304903826fdb",
       "size": 6934
     },
     {
-      "path": "src/codex/session_log.rs",
-      "sha256": "d3fdbed45ac7554f16e6a58027f6e16cfecbe49baae01b607f52530cfe2fef28",
-      "size": 14192
+      "path": "src/session_log.rs",
+      "sha256": "40eff4e91650f26bf3696e680dd237e2a880ecfbf9321636d09269b24e455236",
+      "size": 14256
     }
   ]
 }

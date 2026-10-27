@@ -1,4 +1,4 @@
-# 实现状态
+# opencode-proxy 实现状态
 
 本文档区分“源码已经存在”“当前能够编译”“尚未接入运行时”和“后续交付要求”，
 避免把从 codex-ui 抽取的兼容逻辑误认为已经可独立提供服务的产品。
@@ -30,12 +30,12 @@
 
 ## 当前源码布局
 
-- `src/codex/compat_proxy/mod.rs`：代理 HTTP 入口、协议判定、翻译、SSE、工具处理、
+- `src/compat_proxy/mod.rs`：代理 HTTP 入口、协议判定、翻译、SSE、工具处理、
   OpenCode 请求头与请求体门禁。
-- `src/codex/opencode_profile.rs`：OpenCode 2.2.0 TLS/HTTP1 指纹。
-- `src/codex/compat_trace.rs`：单次上游尝试的内容诊断文件。
-- `src/codex/session_log.rs`：结构化运行日志。
-- `src/codex/path_util.rs`：Windows 路径清洗辅助。
+- `src/opencode_profile.rs`：OpenCode 2.2.0 TLS/HTTP1 指纹。
+- `src/compat_trace.rs`：单次上游尝试的内容诊断文件。
+- `src/session_log.rs`：结构化运行日志。
+- `src/path_util.rs`：Windows 路径清洗辅助。
 - `resources/opencode_tools.json`：OpenCode 客户端 6 个内置工具的请求体 schema。
 - `reference/codex-ui/`：未二次改写的 codex-ui 原始接线快照。
 

@@ -86,7 +86,8 @@ $files = Get-ChildItem -LiteralPath $repoRoot -Recurse -File |
   Where-Object {
     $relative = $_.FullName.Substring($repoRoot.Length + 1) -replace "\\", "/"
     (
-      $relative -match "^(reference/codex-ui|resources|src/codex)/" -or
+      $relative -match "^(reference/codex-ui|resources)/" -or
+      $relative -match "^src/(compat_proxy/|compat_trace\.rs$|opencode_profile\.rs$|path_util\.rs$|session_log\.rs$)" -or
       $relative -eq "scripts/prepare-boringssl-tools.ps1"
     ) -and
       $relative -notmatch "(^|/)target/"

@@ -30,7 +30,7 @@ impl SessionLog {
         Self::with_prefix(dir, DEFAULT_PREFIX)
     }
 
-    /// 使用自定义文件名前缀创建日志（如 `codex-`）；目录不可创建时写入静默失败。
+    /// 使用自定义文件名前缀创建日志（如 `opencode-proxy-`）；目录不可创建时写入静默失败。
     pub fn with_prefix(dir: PathBuf, prefix: &str) -> Self {
         let _ = fs::create_dir_all(&dir);
         Self {
@@ -296,10 +296,10 @@ mod tests {
     }
 
     #[test]
-    fn custom_prefix_writes_codex_file_and_cleanup_is_isolated() {
+    fn custom_prefix_writes_project_file_and_cleanup_is_isolated() {
         let dir = tmp_dir();
-        let codex = SessionLog::with_prefix(dir.path().to_path_buf(), "codex-");
-        codex.write_at(
+        let proxy_log = SessionLog::with_prefix(dir.path().to_path_buf(), "opencode-proxy-");
+        proxy_log.write_at(
             local(2026, 9, 9, 12, 0, 0),
             "warn",
             Some("t"),
@@ -309,19 +309,19 @@ mod tests {
         let session = SessionLog::new(dir.path().to_path_buf());
         session.write_at(local(2026, 9, 9, 12, 0, 0), "info", Some("t"), "ev", &[]);
         let names: Vec<String> = read_files(dir.path()).into_iter().map(|(n, _)| n).collect();
-        assert!(names.iter().any(|n| n == "codex-2026-09-09.log"));
+        assert!(names.iter().any(|n| n == "opencode-proxy-2026-09-09.log"));
         assert!(names.iter().any(|n| n == "session-2026-09-09.log"));
 
-        // codex 前缀清理不删除 session 文件，反之亦然
-        let _ = open_file(dir.path(), "2026-09-02", "codex-").unwrap();
+        // 项目前缀清理不删除 session 文件，反之亦然
+        let _ = open_file(dir.path(), "2026-09-02", "opencode-proxy-").unwrap();
         let _ = open_file(dir.path(), "2026-09-02", DEFAULT_PREFIX).unwrap();
-        cleanup_impl(dir.path(), "2026-09-09", "codex-");
+        cleanup_impl(dir.path(), "2026-09-09", "opencode-proxy-");
         let names: Vec<String> = fs::read_dir(dir.path())
             .unwrap()
             .flatten()
             .map(|e| e.file_name().to_string_lossy().into_owned())
             .collect();
-        assert!(!names.iter().any(|n| n == "codex-2026-09-02.log"));
+        assert!(!names.iter().any(|n| n == "opencode-proxy-2026-09-02.log"));
         assert!(names.iter().any(|n| n == "session-2026-09-02.log"));
     }
 

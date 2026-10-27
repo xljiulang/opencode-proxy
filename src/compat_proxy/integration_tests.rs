@@ -2923,7 +2923,7 @@ fn trace_file_with(dir: &std::path::Path, suffix: &str) -> (String, String) {
 }
 
 fn traced_sink(dir: &std::path::Path) -> TraceSink {
-    TraceSink::new(Arc::new(crate::codex::compat_trace::CompatTrace::new(
+    TraceSink::new(Arc::new(crate::compat_trace::CompatTrace::new(
         dir.to_path_buf(),
     )))
 }
@@ -3341,14 +3341,14 @@ async fn identity_switch_on_keeps_headers_and_body_patch() {
 
 /// 真实网络探针：使用与兼容代理完全相同的 wreq/BoringSSL 传输发送一次
 /// `big-pickle` 请求。默认忽略，避免 CI 联网；运行时需显式提供：
-/// - `CODEXUI_OPENCODE_API_KEY`
-/// - `CODEXUI_OPENCODE_BASE_URL`（默认新 OpenCode OpenAI 兼容路径）
+/// - `OPENCODE_PROXY_API_KEY`
+/// - `OPENCODE_PROXY_BASE_URL`（默认新 OpenCode OpenAI 兼容路径）
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "真实 OpenCode 网络探针，需 API Key 且会消耗免费额度"]
 async fn live_opencode_220_big_pickle_probe() {
-    let key = std::env::var("CODEXUI_OPENCODE_API_KEY").ok();
+    let key = std::env::var("OPENCODE_PROXY_API_KEY").ok();
     let has_key = key.as_deref().is_some_and(|key| !key.trim().is_empty());
-    let base_url = std::env::var("CODEXUI_OPENCODE_BASE_URL")
+    let base_url = std::env::var("OPENCODE_PROXY_BASE_URL")
         .unwrap_or_else(|_| DEFAULT_COMPAT_BASE_URL.to_string());
     let mut headers = HeaderMap::new();
     if let Some(key) = key.as_deref().filter(|key| !key.trim().is_empty()) {
@@ -3370,7 +3370,7 @@ async fn live_opencode_220_big_pickle_probe() {
     eprintln!(
         "OPENCODE_220_PROBE status={} profile={}",
         forwarded.status,
-        crate::codex::opencode_profile::OPENCODE_VERSION
+        crate::opencode_profile::OPENCODE_VERSION
     );
     if has_key {
         assert_eq!(forwarded.status, StatusCode::OK);

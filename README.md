@@ -26,6 +26,14 @@ OpenCode 2.2.0 的实测请求身份、TLS 指纹和已知门禁行为见
 源码和变更历史抽取自 codex-ui commit `99730d4` 及 2026-10-27 的未提交工作树。
 原始文件保存在 `reference/codex-ui/`，机器可校验清单见 `SOURCE_MANIFEST.json`。
 
+## 命名约定
+
+- 仓库、Cargo 包和可执行文件统一为 `opencode-proxy`。
+- Rust crate 的导入名为 `opencode_proxy`。
+- 本项目自有的环境变量使用 `OPENCODE_PROXY_` 前缀。
+- `OpenCode` 指上游产品与协议，`Codex` 指下游客户端；历史文档和
+  `reference/codex-ui/` 中的名称保留原始出处，不作为本项目品牌名。
+
 ## 构建
 
 ```powershell

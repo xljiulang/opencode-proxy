@@ -2,6 +2,7 @@
 name = "opencode-proxy"
 version = "0.1.0"
 description = "独立的 OpenCode 兼容 Responses 代理"
+repository = "https://github.com/xljiulang/opencode-proxy"
 edition = "2021"
 
 [dependencies]

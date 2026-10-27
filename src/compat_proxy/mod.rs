@@ -4,7 +4,7 @@
 //!
 //! - 上游 base URL 与 User-Agent 硬编码（模块私有，不暴露到前端）。
 //! - API Key 不固定：读取入站请求的 `Authorization` 头原样转发。
-//! - 仅绑定回环地址，专供 codex-ui 自身使用，无额外鉴权。
+//! - 仅绑定回环地址，专供本机下游客户端使用，无额外鉴权。
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::net::SocketAddr;
@@ -25,9 +25,9 @@ use futures_util::Stream;
 use serde_json::{json, Map, Value};
 use tokio::task::AbortHandle;
 
-use crate::codex::compat_trace::{TraceCall, TraceSink};
-use crate::codex::opencode_profile::OPENCODE_USER_AGENT;
-use crate::codex::session_log::SessionLog;
+use crate::compat_trace::{TraceCall, TraceSink};
+use crate::opencode_profile::OPENCODE_USER_AGENT;
+use crate::session_log::SessionLog;
 
 /// 兼容代理默认端口（可在设置页修改）。
 pub(crate) const DEFAULT_COMPAT_PROXY_PORT: u16 = 18080;
@@ -54,7 +54,7 @@ const ZEN_FAKE_TOOL_DESCRIPTION: &str = "这是弃用的工具，请勿调用";
 /// —— 空的 `{"type":"object","properties":{}}` 一律不计入 [`ZEN_MIN_GATE_TOOLS`]，
 /// 于是 6 个假工具全都不合格、请求必然 403（2026-10-15 实测）。schema 具体字段内容不参与
 /// 判定，但用真实报文最稳妥（上游若哪天校验更深一层也仍然一致）。
-const ZEN_TOOL_SCHEMAS_JSON: &str = include_str!("../../../resources/opencode_tools.json");
+const ZEN_TOOL_SCHEMAS_JSON: &str = include_str!("../../resources/opencode_tools.json");
 /// 门禁要求的 `max_tokens`（与 `messages` 同级）：入站请求没有自己的输出预算时补上这个值。
 /// 与 [`ZEN_REQUIRED_TOOL_NAMES`] 同受「OpenCode 客户端身份」开关约束：开关开启时对
 /// **所有上游**都补，关闭时一个字段都不补（见 [`ProxyState::opencode_identity`]）。
@@ -624,10 +624,7 @@ pub(crate) async fn start(
             (
                 "profile",
                 if config.opencode_identity {
-                    format!(
-                        "opencode-{}",
-                        crate::codex::opencode_profile::OPENCODE_VERSION
-                    )
+                    format!("opencode-{}", crate::opencode_profile::OPENCODE_VERSION)
                 } else {
                     "plain".to_string()
                 },
@@ -1037,7 +1034,7 @@ fn build_http_client(opencode_identity: bool) -> wreq::Client {
     let mut headers_order = Vec::new();
     if opencode_identity {
         headers_order.extend(
-            crate::codex::opencode_profile::OPENCODE_HEADER_ORDER
+            crate::opencode_profile::OPENCODE_HEADER_ORDER
                 .iter()
                 .filter_map(|name| wreq::header::HeaderName::from_bytes(name.as_bytes()).ok()),
         );
@@ -1045,7 +1042,7 @@ fn build_http_client(opencode_identity: bool) -> wreq::Client {
     let http1_config = wreq::Http1Config::builder().build();
     let http2_config = wreq::Http2Config::builder().build();
     let tls_config = if opencode_identity {
-        crate::codex::opencode_profile::tls_config()
+        crate::opencode_profile::tls_config()
     } else {
         wreq::TlsConfig::default()
     };

@@ -1,8 +1,8 @@
-# OpenCode Console 协议与指纹记录
+# opencode-proxy：OpenCode Console 协议与指纹记录
 
-本文档记录 codex-ui 兼容代理在 2026-09-09 至 2026-10-27 期间取得的证据，
-以及把它拆成独立代理后必须补齐的运行时能力。本文不会保存 API Key、OAuth
-凭据或真实 workspace ID。
+本文档记录 opencode-proxy 的前身 codex-ui 兼容代理在 2026-09-09 至
+2026-10-27 期间取得的证据，以及把实现拆成独立代理后必须补齐的运行时能力。
+本文不会保存 API Key、OAuth 凭据或真实 workspace ID。
 
 ## 端点
 
