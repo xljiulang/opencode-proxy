@@ -141,8 +141,9 @@ HTTPS 调试代理会替换 ClientHello。验证时必须直连，或至少旁�
 
 ## 模型列表与健康检查
 
-模型列表尚未实现。验收时应独立请求 `/inference/v1/models`，不要复用 chat 路径作为
-探针；探测失败也不能把代理判定为完全不可用。
+模型列表通过配置的 `models_url` 转发。验收时应独立请求
+`{provider base_url 路径}/models`，不要复用 chat 路径作为探针；探测失败也不能把代理
+判定为完全不可用。真实 HTTP 与 Codex 双层验收使用 `scripts/smoke-live.ps1`。
 
 本机代理接口：
 

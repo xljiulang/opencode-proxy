@@ -64,6 +64,30 @@ env_key = "OPENCODE_API_KEY"
 Codex 请求 `.../responses` 时，代理按模型自动选择 Chat 翻译或 Responses 直通；
 请求 `.../models` 时会转发到配置的 `models_url`。
 
+## 真实验收
+
+真实验收使用当前目录的 `opencode-proxy.toml` 获取 org/project 和上游配置，
+API Key 只从当前进程环境读取：
+
+```powershell
+$env:OPENCODE_PROXY_API_KEY = '<your OpenCode API key>'
+pwsh -NoLogo -NoProfile -File scripts\smoke-live.ps1 `
+  -Config opencode-proxy.toml `
+  -Model big-pickle
+```
+
+脚本会依次验证 `/healthz`、`{ProviderPath}/models`、流式
+`{ProviderPath}/responses`，再用 `codex exec --ephemeral` 通过临时命令行配置发起
+真实请求。它不会修改 `~/.codex/config.toml`，不会输出 API Key，并会在结束时停止代理。
+可通过 `-ProviderPath` 覆盖 provider 路径，通过 `-Port` 指定本地端口。
+
+脚本的前置错误路径可单独验证：
+
+```powershell
+Import-Module Pester
+Invoke-Pester -Script scripts\tests\smoke-live.Tests.ps1
+```
+
 ## 协议
 
 OpenCode 2.2.0 的实测请求身份、TLS 指纹和已知门禁行为见
